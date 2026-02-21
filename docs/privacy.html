@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy – OG Link Preview</title>
+  <meta name="description" content="Privacy policy for the OG Link Preview Chrome extension. We collect no data." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange: #ff8c00;
+      --orange-dim: rgba(255,140,0,.12);
+      --orange-border: rgba(255,140,0,.25);
+      --bg: #09070f;
+      --surface: rgba(255,255,255,.04);
+      --border: rgba(255,255,255,.08);
+      --text: #fff;
+      --text-muted: rgba(255,255,255,.55);
+      --text-faint: rgba(255,255,255,.3);
+      --font: "Euclid Circular A", "Inter", -apple-system, sans-serif;
+      --radius: 14px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Nav ───────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 64px;
+      background: rgba(9,7,15,.8);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .nav-logo-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--orange);
+      box-shadow: 0 0 12px rgba(255,140,0,.6);
+    }
+
+    .nav-back {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      transition: color .15s, border-color .15s;
+    }
+    .nav-back:hover { color: var(--text); border-color: rgba(255,255,255,.2); }
+
+    /* ── Content ───────────────────────────────────── */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 120px 40px 100px;
+    }
+
+    .page-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--orange-dim);
+      border: 1px solid var(--orange-border);
+      color: var(--orange);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: clamp(36px, 5vw, 52px);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.08;
+      margin-bottom: 16px;
+    }
+
+    .updated {
+      font-size: 13px;
+      color: var(--text-faint);
+      margin-bottom: 56px;
+    }
+
+    /* Summary card */
+    .summary-card {
+      background: var(--orange-dim);
+      border: 1px solid var(--orange-border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      margin-bottom: 56px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .summary-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .summary-card h2 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--orange);
+    }
+    .summary-card p {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Sections */
+    .policy-section {
+      margin-bottom: 48px;
+      padding-bottom: 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .policy-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .policy-section h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      letter-spacing: -.3px;
+    }
+
+    .policy-section p {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.75;
+      margin-bottom: 14px;
+    }
+    .policy-section p:last-child { margin-bottom: 0; }
+
+    .policy-section ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .policy-section ul li {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .policy-section ul li::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--orange);
+      flex-shrink: 0;
+      margin-top: 8px;
+    }
+
+    a { color: var(--orange); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Footer ─────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    .footer-logo-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--orange);
+    }
+
+    .footer-copy { font-size: 13px; color: var(--text-faint); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      main { padding: 100px 20px 80px; }
+      footer { flex-direction: column; gap: 16px; text-align: center; }
+      .summary-card { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Nav ──────────────────────────────────────────── -->
+  <nav>
+    <a href="/" class="nav-logo">
+      <span class="nav-logo-dot"></span>
+      OG Link Preview
+    </a>
+    <a href="/" class="nav-back">← Back to home</a>
+  </nav>
+
+  <!-- ── Content ───────────────────────────────────────── -->
+  <main>
+    <div class="page-label">Legal</div>
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: February 2026</p>
+
+    <!-- TL;DR -->
+    <div class="summary-card">
+      <span class="summary-icon">🔒</span>
+      <div>
+        <h2>The short version</h2>
+        <p>OG Link Preview does not collect, store, transmit, or share any data about you or your browsing. Everything the extension does happens entirely on your device.</p>
+      </div>
+    </div>
+
+    <!-- Sections -->
+    <div class="policy-section">
+      <h2>What we collect</h2>
+      <p>Nothing. OG Link Preview collects no personal information, no usage data, and no analytics of any kind.</p>
+      <p>The extension reads Open Graph and Twitter Card meta tags from the currently active browser tab when you click the extension icon. This data is used only to display previews and validation results within the popup. It is never stored, logged, or sent anywhere.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>Permissions explained</h2>
+      <p>OG Link Preview requests the following browser permissions, and only for the reasons listed:</p>
+      <ul>
+        <li><strong style="color:#fff;">activeTab</strong> — to read meta tags from the current page when you click the icon. We only access the tab you're actively viewing, and only when triggered by you.</li>
+        <li><strong style="color:#fff;">scripting</strong> — to inject a small script that extracts meta tags from the page's DOM. No scripts are injected without your direct action.</li>
+        <li><strong style="color:#fff;">&lt;all_urls&gt;</strong> — so the extension can work on any website, including localhost and staging environments. No browsing history is recorded.</li>
+      </ul>
+    </div>
+
+    <div class="policy-section">
+      <h2>Third-party services</h2>
+      <p>OG Link Preview does not communicate with any third-party servers or services. There are no analytics SDKs, no crash reporting tools, and no advertising integrations.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>Data storage</h2>
+      <p>The extension stores no data locally, in browser storage, or in any external database. Each time you open the popup, it reads the current page fresh and displays results immediately — nothing is retained after the popup closes.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>Children's privacy</h2>
+      <p>OG Link Preview is a developer tool not directed at children. We do not knowingly collect information from anyone under the age of 13.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>Changes to this policy</h2>
+      <p>If we ever update this policy, the revised version will be posted here with an updated date. Given the nature of this extension — no data collection — we don't anticipate material changes.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>Contact</h2>
+      <p>Have a question about this policy or the extension? Open an issue on <a href="https://github.com" target="_blank">GitHub</a> and we'll get back to you.</p>
+    </div>
+  </main>
+
+  <!-- ── Footer ────────────────────────────────────────── -->
+  <footer>
+    <a href="/" class="footer-logo">
+      <span class="footer-logo-dot"></span>
+      OG Link Preview
+    </a>
+    <span class="footer-copy">© 2026 OG Link Preview</span>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OG Link Preview – Screenshots</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --font: "Euclid Circular A", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    /* ── Scene wrapper ─────────────────────────────────── */
+    .scene {
+      width: 1280px;
+      height: 800px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 64px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Scene backgrounds */
+    .scene-1 { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); }
+    .scene-2 { background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); }
+    .scene-3 { background: linear-gradient(135deg, #0d1117, #161b22, #21262d); }
+    .scene-4 { background: linear-gradient(135deg, #0a1628, #0d2137, #0f3460); }
+
+    /* Subtle grid overlay */
+    .scene::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* Glow orb */
+    .scene::after {
+      content: '';
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,140,0,.12) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    /* ── Popup shell ───────────────────────────────────── */
+    .popup {
+      width: 400px;
+      background: #f5f5f5;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08);
+      font-family: var(--font);
+      font-size: 13px;
+      color: #222;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Callout label (left of popup) ─────────────────── */
+    .callout {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 340px;
+      font-family: var(--font);
+    }
+    .callout-tag {
+      display: inline-block;
+      background: rgba(255,140,0,.15);
+      border: 1px solid rgba(255,140,0,.35);
+      color: #ff8c00;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      width: fit-content;
+    }
+    .callout h2 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+    }
+    .callout h2 span { color: #ff8c00; }
+    .callout p {
+      font-size: 15px;
+      color: rgba(255,255,255,.6);
+      line-height: 1.6;
+    }
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: rgba(255,255,255,.75);
+      font-size: 13px;
+    }
+    .feature-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ff8c00;
+      flex-shrink: 0;
+    }
+
+    /* ── Popup internals (copied from popup.html) ─────── */
+    .header {
+      padding: 12px 16px;
+      font-weight: 600;
+      font-size: 14px;
+      background: #fff;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff8c00;
+    }
+    .og-image-placeholder {
+      width: 100%;
+      height: 160px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: rgba(255,255,255,.5);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .og-image-placeholder.green { background: linear-gradient(135deg, #11998e, #38ef7d); }
+    .og-image-placeholder.orange { background: linear-gradient(135deg, #f7971e, #ffd200); }
+    .og-content { padding: 12px 16px; background: #fff; }
+    .og-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; color: #111; }
+    .og-description { color: #555; font-size: 12px; line-height: 1.5; margin-bottom: 8px; }
+    .og-url { color: #999; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .section { background: #fff; margin-top: 6px; }
+    .section-header {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .section-title {
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #999;
+    }
+
+    .score-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .score-error { background: #fde8e8; color: #c00; }
+    .score-warn { background: #fff3e0; color: #e67700; }
+    .score-pass { background: #e6f9e6; color: #1a7f1a; }
+
+    .validation-item {
+      padding: 6px 16px;
+      font-size: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .validation-item:last-child { border-bottom: none; }
+    .validation-icon { flex-shrink: 0; font-size: 13px; line-height: 1.4; }
+    .vi-error { color: #c00; }
+    .vi-warn  { color: #e67700; }
+    .vi-pass  { color: #1a7f1a; }
+
+    .tabs-container {
+      display: flex;
+      padding: 0 16px;
+      background: #fff;
+      border-bottom: 1px solid #eee;
+    }
+    .tab {
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #999;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .tab.active { color: #ff8c00; border-bottom-color: #ff8c00; }
+
+    .tab-panel { padding: 10px 16px 12px; }
+
+    .tag-row {
+      display: flex;
+      padding: 5px 0;
+      border-bottom: 1px solid #f5f5f5;
+      gap: 8px;
+    }
+    .tag-row:last-child { border-bottom: none; }
+    .tag-name {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 500;
+      font-family: "SF Mono", Menlo, monospace;
+      min-width: 120px;
+    }
+    .tag-og { color: #ff8c00; }
+    .tag-twitter { color: #1d9bf0; }
+    .tag-value { font-size: 12px; color: #333; word-break: break-word; line-height: 1.4; }
+    .tag-value.missing { color: #ccc; font-style: italic; }
+
+    /* Social previews */
+    .sp-fb-image { background: linear-gradient(135deg, #667eea, #764ba2); height: 130px; }
+    .sp-fb-image.green { background: linear-gradient(135deg, #11998e, #38ef7d); }
+    .sp-fb-body { padding: 10px 12px; background: #f0f2f5; border: 1px solid #ddd; border-top: 0; }
+    .sp-fb-site { font-size: 11px; color: #65676b; text-transform: uppercase; }
+    .sp-fb-title { font-size: 14px; font-weight: 600; color: #1c1e21; line-height: 1.3; margin: 2px 0; }
+    .sp-fb-desc { font-size: 12px; color: #65676b; }
+
+    .sp-tw-large-image { background: linear-gradient(135deg, #667eea, #764ba2); height: 120px; border-radius: 12px 12px 0 0; }
+    .sp-tw-body { padding: 10px 12px; border: 1px solid #e1e8ed; border-top: 0; border-radius: 0 0 12px 12px; }
+    .sp-tw-title { font-size: 13px; font-weight: 700; color: #0f1419; }
+    .sp-tw-desc { font-size: 12px; color: #536471; margin-top: 2px; }
+    .sp-tw-site { font-size: 11px; color: #536471; margin-top: 2px; }
+
+    .sp-li-image { background: linear-gradient(135deg, #11998e, #38ef7d); height: 120px; }
+    .sp-li-body { padding: 8px 12px; background: #f3f6f8; border: 1px solid #e0e0e0; border-top: 0; }
+    .sp-li-title { font-size: 13px; font-weight: 600; color: #000; }
+    .sp-li-site { font-size: 11px; color: #666; margin-top: 2px; }
+
+    .sp-sl-bar { border-left: 4px solid #e0e0e0; padding: 6px 12px; }
+    .sp-sl-site { font-size: 12px; font-weight: 700; color: #1d1c1d; }
+    .sp-sl-title { font-size: 13px; color: #1264a3; font-weight: 700; margin-top: 2px; }
+    .sp-sl-desc { font-size: 12px; color: #1d1c1d; margin-top: 2px; }
+    .sp-sl-image { margin-top: 6px; background: linear-gradient(135deg, #667eea, #764ba2); height: 80px; width: 180px; border-radius: 4px; }
+
+    /* ── Scene nav ─────────────────────────────────────── */
+    .nav {
+      position: fixed;
+      top: 50%;
+      right: 16px;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 100;
+      background: rgba(0,0,0,.5);
+      backdrop-filter: blur(8px);
+      padding: 8px 6px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.1);
+    }
+    .nav-btn {
+      padding: 4px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: rgba(255,255,255,.5);
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      font-family: var(--font);
+      transition: all .15s;
+    }
+    .nav-btn:hover { color: #fff; }
+    .nav-btn.active { background: #ff8c00; color: #fff; }
+
+    .scene { display: none; }
+    .scene.active { display: flex; }
+    html, body {
+      width: 1280px;
+      height: 800px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body style="background:#000;">
+
+  <!-- ── Nav ──────────────────────────────────────────── -->
+  <div class="nav">
+    <button class="nav-btn active" onclick="show(1)">Scene 1</button>
+    <button class="nav-btn" onclick="show(2)">Scene 2</button>
+    <button class="nav-btn" onclick="show(3)">Scene 3</button>
+    <button class="nav-btn" onclick="show(4)">Scene 4</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- SCENE 1 · Hero — Validation errors + preview card  -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="scene scene-1 active" id="scene-1">
+    <div class="callout">
+      <span class="callout-tag">Chrome Extension</span>
+      <h2>Inspect <span>Open Graph</span> tags instantly</h2>
+      <p>See exactly how your links will look when shared — right from your browser toolbar.</p>
+      <div class="feature-list">
+        <div class="feature-item"><span class="feature-dot"></span>Works on localhost & staging</div>
+        <div class="feature-item"><span class="feature-dot"></span>Validates required OG tags</div>
+        <div class="feature-item"><span class="feature-dot"></span>No data collected, ever</div>
+      </div>
+    </div>
+
+    <div class="popup">
+      <div class="header"><span class="header-dot"></span> OG Preview</div>
+      <div class="og-image-placeholder">og:image</div>
+      <div class="og-content">
+        <div class="og-title">Getting Started with React 18</div>
+        <div class="og-description">Learn Concurrent Mode, Suspense, and the new useTransition hook with hands-on examples.</div>
+        <div class="og-url">reactjs.org › blog › react-18-release</div>
+      </div>
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Validation</span>
+          <span class="score-badge score-warn">2 Warnings</span>
+        </div>
+        <div class="validation-item"><span class="validation-icon vi-pass">✓</span><span>og:title is set</span></div>
+        <div class="validation-item"><span class="validation-icon vi-pass">✓</span><span>og:description is set</span></div>
+        <div class="validation-item"><span class="validation-icon vi-warn">⚠</span><span>og:image is missing — previews will have no thumbnail</span></div>
+        <div class="validation-item"><span class="validation-icon vi-warn">⚠</span><span>twitter:card is not set</span></div>
+        <div class="validation-item"><span class="validation-icon vi-pass">✓</span><span>og:url is set</span></div>
+      </div>
+      <div class="section">
+        <div class="tabs-container">
+          <div class="tab active">OG Tags</div>
+          <div class="tab">Twitter / X</div>
+        </div>
+        <div class="tab-panel">
+          <div class="tag-row"><span class="tag-name tag-og">og:title</span><span class="tag-value">Getting Started with React 18</span></div>
+          <div class="tag-row"><span class="tag-name tag-og">og:description</span><span class="tag-value">Learn Concurrent Mode, Suspense...</span></div>
+          <div class="tag-row"><span class="tag-name tag-og">og:image</span><span class="tag-value missing">not set</span></div>
+          <div class="tag-row"><span class="tag-name tag-og">og:url</span><span class="tag-value">https://reactjs.org/blog/react-18</span></div>
+          <div class="tag-row"><span class="tag-name tag-og">og:type</span><span class="tag-value">article</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- SCENE 2 · Social Previews                          -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="scene scene-2" id="scene-2">
+    <div class="callout">
+      <span class="callout-tag">Social Previews</span>
+      <h2>See how links look <span>everywhere</span></h2>
+      <p>Realistic mockups of Facebook, Twitter/X, LinkedIn, and Slack previews — before you ship.</p>
+      <div class="feature-list">
+        <div class="feature-item"><span class="feature-dot"></span>Facebook card layout</div>
+        <div class="feature-item"><span class="feature-dot"></span>Twitter summary & large image</div>
+        <div class="feature-item"><span class="feature-dot"></span>LinkedIn & Slack unfurls</div>
+      </div>
+    </div>
+
+    <div class="popup">
+      <div class="header"><span class="header-dot"></span> OG Preview</div>
+      <div class="og-image-placeholder green">og:image preview</div>
+      <div class="og-content">
+        <div class="og-title">How We Scaled to 1M Users</div>
+        <div class="og-description">A deep dive into our infrastructure decisions, caching strategies, and the lessons we learned along the way.</div>
+        <div class="og-url">blog.acme.com › engineering › scaling</div>
+      </div>
+      <div class="section">
+        <div class="tabs-container" style="padding: 0 8px;">
+          <div class="tab active" style="font-size:11px;padding:7px 10px;">Facebook</div>
+          <div class="tab" style="font-size:11px;padding:7px 10px;">Twitter / X</div>
+          <div class="tab" style="font-size:11px;padding:7px 10px;">LinkedIn</div>
+          <div class="tab" style="font-size:11px;padding:7px 10px;">Slack</div>
+        </div>
+        <div class="tab-panel">
+          <div class="sp-fb-image green"></div>
+          <div class="sp-fb-body">
+            <div class="sp-fb-site">blog.acme.com</div>
+            <div class="sp-fb-title">How We Scaled to 1M Users</div>
+            <div class="sp-fb-desc">A deep dive into our infrastructure decisions and caching strategies.</div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Twitter / X Preview</span>
+        </div>
+        <div style="padding: 0 16px 12px;">
+          <div class="sp-tw-large-image"></div>
+          <div class="sp-tw-body">
+            <div class="sp-tw-title">How We Scaled to 1M Users</div>
+            <div class="sp-tw-desc">A deep dive into our infrastructure decisions and caching strategies.</div>
+            <div class="sp-tw-site">blog.acme.com</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- SCENE 3 · Tag Inspector                            -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="scene scene-3" id="scene-3">
+    <div class="callout">
+      <span class="callout-tag">Tag Inspector</span>
+      <h2>Every <span>OG tag</span>, at a glance</h2>
+      <p>Browse all Open Graph and Twitter Card meta tags found on the page, organized in clean tabs.</p>
+      <div class="feature-list">
+        <div class="feature-item"><span class="feature-dot"></span>og: tags with orange labels</div>
+        <div class="feature-item"><span class="feature-dot"></span>twitter: tags with blue labels</div>
+        <div class="feature-item"><span class="feature-dot"></span>Missing fields shown clearly</div>
+      </div>
+    </div>
+
+    <div class="popup">
+      <div class="header"><span class="header-dot"></span> OG Preview</div>
+      <div class="og-content" style="border-bottom: 1px solid #eee;">
+        <div class="og-title">The Complete Guide to CSS Grid</div>
+        <div class="og-url">css-tricks.com › snippets › css › complete-guide-grid</div>
+      </div>
+      <div class="section">
+        <div class="tabs-container">
+          <div class="tab active">OG Tags</div>
+          <div class="tab">Twitter / X</div>
+        </div>
+        <div class="tab-panel">
+          <div class="tag-row"><span class="tag-name tag-og">og:title</span><span class="tag-value">The Complete Guide to CSS Grid</span></div>
+          <div class="tag-row"><span class="tag-name tag-og">og:description</span><span class="tag-value">A comprehensive guide to CSS Grid with examples and browser support info.</span></div>
+          <div class="tag-row"><span class="tag-name tag-og">og:image</span><span class="tag-value">https://css-tricks.com/wp-content/uploads/grid-og.png</span></div>
+          <div class="tag-row"><span class="tag-name tag-og">og:url</span><span class="tag-value">https://css-tricks.com/snippets/css/complete-guide-grid/</span></div>
+          <div class="tag-row"><span class="tag-name tag-og">og:type</span><span class="tag-value">article</span></div>
+          <div class="tag-row"><span class="tag-name tag-og">og:site_name</span><span class="tag-value">CSS-Tricks</span></div>
+          <div class="tag-row"><span class="tag-name tag-og">og:locale</span><span class="tag-value">en_US</span></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="tabs-container">
+          <div class="tab">OG Tags</div>
+          <div class="tab active">Twitter / X</div>
+        </div>
+        <div class="tab-panel">
+          <div class="tag-row"><span class="tag-name tag-twitter">twitter:card</span><span class="tag-value">summary_large_image</span></div>
+          <div class="tag-row"><span class="tag-name tag-twitter">twitter:title</span><span class="tag-value">The Complete Guide to CSS Grid</span></div>
+          <div class="tag-row"><span class="tag-name tag-twitter">twitter:description</span><span class="tag-value">A comprehensive guide to CSS Grid...</span></div>
+          <div class="tag-row"><span class="tag-name tag-twitter">twitter:image</span><span class="tag-value">https://css-tricks.com/wp-content/...</span></div>
+          <div class="tag-row"><span class="tag-name tag-twitter">twitter:site</span><span class="tag-value">@css</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- SCENE 4 · All Good validation pass                 -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="scene scene-4" id="scene-4">
+    <div class="callout">
+      <span class="callout-tag">Validation</span>
+      <h2>Ship with <span>confidence</span></h2>
+      <p>Catch missing or malformed OG tags before your content goes live. Get a clear pass/fail score instantly.</p>
+      <div class="feature-list">
+        <div class="feature-item"><span class="feature-dot"></span>Errors for missing required tags</div>
+        <div class="feature-item"><span class="feature-dot"></span>Warnings for best-practice issues</div>
+        <div class="feature-item"><span class="feature-dot"></span>"All good" badge when everything passes</div>
+      </div>
+    </div>
+
+    <div class="popup">
+      <div class="header"><span class="header-dot"></span> OG Preview</div>
+      <div class="og-image-placeholder orange">og:image</div>
+      <div class="og-content">
+        <div class="og-title">Introducing Our New Design System</div>
+        <div class="og-description">Meet Horizon — a flexible, accessible component library built for scale and consistency across all our products.</div>
+        <div class="og-url">design.acme.com › blog › horizon-design-system</div>
+      </div>
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Validation</span>
+          <span class="score-badge score-pass">All Good ✓</span>
+        </div>
+        <div class="validation-item"><span class="validation-icon vi-pass">✓</span><span>og:title is set</span></div>
+        <div class="validation-item"><span class="validation-icon vi-pass">✓</span><span>og:description is set (142 chars)</span></div>
+        <div class="validation-item"><span class="validation-icon vi-pass">✓</span><span>og:image is set</span></div>
+        <div class="validation-item"><span class="validation-icon vi-pass">✓</span><span>og:url is set</span></div>
+        <div class="validation-item"><span class="validation-icon vi-pass">✓</span><span>og:type is set</span></div>
+        <div class="validation-item"><span class="validation-icon vi-pass">✓</span><span>twitter:card is set</span></div>
+      </div>
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">LinkedIn Preview</span>
+        </div>
+        <div style="padding: 0 16px 12px;">
+          <div class="sp-li-image orange" style="background: linear-gradient(135deg, #f7971e, #ffd200);"></div>
+          <div class="sp-li-body">
+            <div class="sp-li-title">Introducing Our New Design System</div>
+            <div class="sp-li-site">design.acme.com</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function show(n) {
+      document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('scene-' + n).classList.add('active');
+      document.querySelectorAll('.nav-btn')[n - 1].classList.add('active');
+    }
+  </script>
+</body>
+</html>

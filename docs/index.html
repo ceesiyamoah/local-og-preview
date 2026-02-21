@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OG Link Preview – Inspect Open Graph tags instantly</title>
+  <meta name="description" content="A Chrome extension that lets you inspect Open Graph and Twitter Card meta tags and preview how your links appear on Facebook, Twitter, LinkedIn, and Slack." />
+  <meta property="og:title" content="OG Link Preview" />
+  <meta property="og:description" content="Inspect Open Graph tags and preview social shares instantly from your browser toolbar." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange: #ff8c00;
+      --orange-dim: rgba(255,140,0,.15);
+      --orange-border: rgba(255,140,0,.25);
+      --bg: #09070f;
+      --surface: rgba(255,255,255,.04);
+      --border: rgba(255,255,255,.08);
+      --text: #fff;
+      --text-muted: rgba(255,255,255,.5);
+      --text-faint: rgba(255,255,255,.3);
+      --font: "Euclid Circular A", "Inter", -apple-system, sans-serif;
+      --radius: 14px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Grid background ───────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Nav ───────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 64px;
+      background: rgba(9,7,15,.8);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .nav-logo-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--orange);
+      box-shadow: 0 0 12px rgba(255,140,0,.6);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 8px;
+      transition: color .15s;
+    }
+    .nav-link:hover { color: var(--text); }
+
+    .nav-cta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--orange);
+      color: #000;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 18px;
+      border-radius: 8px;
+      transition: opacity .15s;
+    }
+    .nav-cta:hover { opacity: .85; }
+
+    /* ── Sections ──────────────────────────────────── */
+    section { position: relative; z-index: 1; }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+
+    /* ── Hero ──────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 40px 80px;
+      position: relative;
+    }
+
+    .hero-glow {
+      position: absolute;
+      width: 700px;
+      height: 700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,140,0,.1) 0%, transparent 65%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--orange-dim);
+      border: 1px solid var(--orange-border);
+      color: var(--orange);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 28px;
+    }
+    .hero-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--orange);
+    }
+
+    .hero h1 {
+      font-size: clamp(48px, 7vw, 80px);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      margin-bottom: 22px;
+      max-width: 800px;
+    }
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 19px;
+      color: var(--text-muted);
+      line-height: 1.65;
+      max-width: 520px;
+      margin-bottom: 40px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--orange);
+      color: #000;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 14px 28px;
+      border-radius: 10px;
+      transition: opacity .15s, transform .15s;
+    }
+    .btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 14px 28px;
+      border-radius: 10px;
+      transition: color .15s, border-color .15s;
+    }
+    .btn-secondary:hover { color: var(--text); border-color: rgba(255,255,255,.2); }
+
+    .hero-note {
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--text-faint);
+    }
+
+    /* ── Popup preview ─────────────────────────────── */
+    .hero-preview {
+      margin-top: 72px;
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .preview-card {
+      width: 280px;
+      background: #f5f5f5;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 40px 100px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.1);
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 9px;
+      color: #222;
+      flex-shrink: 0;
+    }
+    .preview-card.center { width: 300px; z-index: 2; }
+    .preview-card.side { opacity: .6; margin-top: 30px; transform: scale(.95); }
+
+    .pc-header {
+      background: #fff;
+      border-bottom: 1px solid #eee;
+      padding: 7px 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 600;
+      font-size: 8.5px;
+      color: #222;
+    }
+    .pc-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--orange); }
+
+    .pc-img { width: 100%; height: 70px; }
+    .img-purple { background: linear-gradient(135deg, #667eea, #764ba2); }
+    .img-green  { background: linear-gradient(135deg, #11998e, #38ef7d); }
+    .img-orange { background: linear-gradient(135deg, #f7971e, #ffd200); }
+
+    .pc-body { padding: 8px 10px; background: #fff; border-bottom: 1px solid #eee; }
+    .pc-title { font-weight: 700; font-size: 9.5px; color: #111; margin-bottom: 3px; }
+    .pc-desc  { font-size: 7.5px; color: #666; line-height: 1.4; margin-bottom: 3px; }
+    .pc-url   { font-size: 7px; color: #aaa; }
+
+    .pc-section { background: #fff; margin-top: 3px; }
+    .pc-section-hd {
+      padding: 5px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .pc-section-title { font-size: 6px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: .3px; }
+    .pc-badge { font-size: 6px; font-weight: 700; padding: 2px 6px; border-radius: 8px; }
+    .badge-pass { background: #e6f9e6; color: #1a7f1a; }
+    .badge-warn { background: #fff3e0; color: #e67700; }
+
+    .pc-val { padding: 4px 10px; display: flex; gap: 5px; align-items: flex-start; border-bottom: 1px solid #f5f5f5; font-size: 7px; }
+    .pc-val:last-child { border-bottom: none; }
+    .vi-pass { color: #1a7f1a; font-size: 8px; }
+    .vi-warn { color: #e67700; font-size: 8px; }
+
+    .pc-tabs { display: flex; padding: 0 10px; background: #fff; border-bottom: 1px solid #eee; }
+    .pc-tab { padding: 6px 10px; font-size: 7.5px; font-weight: 500; color: #bbb; border-bottom: 2px solid transparent; }
+    .pc-tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+    .sp-fb-img { width: 100%; height: 50px; }
+    .sp-fb-body { padding: 6px 8px; background: #f0f2f5; border: 1px solid #ddd; border-top: 0; }
+    .sp-fb-site { font-size: 5.5px; color: #65676b; text-transform: uppercase; }
+    .sp-fb-title { font-size: 7.5px; font-weight: 600; color: #1c1e21; margin: 1px 0; }
+    .sp-fb-desc { font-size: 6.5px; color: #65676b; }
+
+    /* ── Features ──────────────────────────────────── */
+    .features {
+      padding: 100px 0;
+    }
+
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--orange-dim);
+      border: 1px solid var(--orange-border);
+      color: var(--orange);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: clamp(32px, 4vw, 48px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+    .section-title span { color: var(--orange); }
+
+    .section-sub {
+      font-size: 17px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 500px;
+      margin-bottom: 60px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      transition: border-color .2s;
+    }
+    .feature-card:hover { border-color: rgba(255,140,0,.3); }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: var(--orange-dim);
+      border: 1px solid var(--orange-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 18px;
+    }
+
+    .feature-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    .feature-card.wide {
+      grid-column: span 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+
+    .platforms {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .platform-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: 20px;
+    }
+    .platform-pill-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--orange); }
+
+    /* Social preview mockup inside feature card */
+    .social-mockup {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sm-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+    }
+    .sm-platform {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-faint);
+      min-width: 72px;
+    }
+    .sm-bar {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255,255,255,.1);
+    }
+    .sm-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--orange);
+      opacity: .4;
+    }
+    .sm-check { color: #1a7f1a; font-size: 13px; }
+
+    /* ── How it works ──────────────────────────────── */
+    .how {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 0;
+    }
+
+    .step {
+      position: relative;
+      padding: 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .step-number {
+      font-size: 48px;
+      font-weight: 900;
+      color: rgba(255,140,0,.15);
+      line-height: 1;
+      margin-bottom: 16px;
+      letter-spacing: -2px;
+    }
+
+    .step h3 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .step p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* ── CTA ────────────────────────────────────────── */
+    .cta-section {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .cta-box {
+      background: var(--orange-dim);
+      border: 1px solid var(--orange-border);
+      border-radius: 20px;
+      padding: 72px 60px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-box::before {
+      content: '';
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,140,0,.12) 0%, transparent 65%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .cta-box h2 {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .cta-box h2 span { color: var(--orange); }
+
+    .cta-box p {
+      font-size: 17px;
+      color: var(--text-muted);
+      margin-bottom: 36px;
+      max-width: 440px;
+      margin-left: auto;
+      margin-right: auto;
+      position: relative;
+    }
+
+    .cta-box .btn-primary { position: relative; font-size: 16px; padding: 16px 36px; }
+
+    /* ── Footer ─────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    .footer-logo-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--orange);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+    .footer-link {
+      color: var(--text-faint);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color .15s;
+    }
+    .footer-link:hover { color: var(--text-muted); }
+
+    .footer-copy {
+      font-size: 13px;
+      color: var(--text-faint);
+    }
+
+    /* ── Responsive ─────────────────────────────────── */
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .container { padding: 0 20px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .feature-card.wide { grid-column: span 1; grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      .hero-preview { display: none; }
+      footer { flex-direction: column; gap: 16px; text-align: center; }
+      .cta-box { padding: 48px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Nav ──────────────────────────────────────────── -->
+  <nav>
+    <a href="/" class="nav-logo">
+      <span class="nav-logo-dot"></span>
+      OG Link Preview
+    </a>
+    <div class="nav-links">
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#how" class="nav-link">How it works</a>
+      <a href="privacy.html" class="nav-link">Privacy</a>
+      <a href="https://chromewebstore.google.com" class="nav-cta" target="_blank">
+        Add to Chrome
+      </a>
+    </div>
+  </nav>
+
+  <!-- ── Hero ─────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      Free Chrome Extension
+    </div>
+
+    <h1>Inspect <span>Open Graph</span><br>tags instantly</h1>
+
+    <p>See exactly how your links appear when shared on Facebook, Twitter, LinkedIn, and Slack — right from your browser toolbar.</p>
+
+    <div class="hero-actions">
+      <a href="https://chromewebstore.google.com" class="btn-primary" target="_blank">
+        Add to Chrome — it's free
+      </a>
+      <a href="#features" class="btn-secondary">See features</a>
+    </div>
+    <p class="hero-note">Works on localhost, staging & production · No data collected</p>
+
+    <!-- Mini popup preview -->
+    <div class="hero-preview">
+      <div class="preview-card side">
+        <div class="pc-header"><span class="pc-dot"></span> OG Preview</div>
+        <div class="pc-body">
+          <div class="pc-title">The Complete Guide to CSS Grid</div>
+          <div class="pc-url">css-tricks.com › complete-guide-grid</div>
+        </div>
+        <div class="pc-section">
+          <div class="pc-tabs">
+            <div class="pc-tab active">OG Tags</div>
+            <div class="pc-tab">Twitter / X</div>
+          </div>
+          <div style="padding:6px 10px; background:#fff;">
+            <div class="pc-val" style="border-bottom:1px solid #f5f5f5;"><span style="font-size:7px;font-family:monospace;color:#ff8c00;min-width:70px;flex-shrink:0;">og:title</span><span>The Complete Guide to CSS Grid</span></div>
+            <div class="pc-val" style="border-bottom:1px solid #f5f5f5;"><span style="font-size:7px;font-family:monospace;color:#ff8c00;min-width:70px;flex-shrink:0;">og:description</span><span>A comprehensive guide with examples.</span></div>
+            <div class="pc-val" style="border-bottom:1px solid #f5f5f5;"><span style="font-size:7px;font-family:monospace;color:#ff8c00;min-width:70px;flex-shrink:0;">og:image</span><span>css-tricks.com/wp-content/og.png</span></div>
+            <div class="pc-val"><span style="font-size:7px;font-family:monospace;color:#ff8c00;min-width:70px;flex-shrink:0;">og:type</span><span>article</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-card center">
+        <div class="pc-header"><span class="pc-dot"></span> OG Preview</div>
+        <div class="pc-img img-orange"></div>
+        <div class="pc-body">
+          <div class="pc-title">Introducing Our New Design System</div>
+          <div class="pc-desc">Meet Horizon — a flexible, accessible component library built for scale.</div>
+          <div class="pc-url">design.acme.com › blog › horizon</div>
+        </div>
+        <div class="pc-section">
+          <div class="pc-section-hd">
+            <span class="pc-section-title">Validation</span>
+            <span class="pc-badge badge-pass">All Good ✓</span>
+          </div>
+          <div class="pc-val"><span class="vi-pass">✓</span><span>og:title is set</span></div>
+          <div class="pc-val"><span class="vi-pass">✓</span><span>og:description is set</span></div>
+          <div class="pc-val"><span class="vi-pass">✓</span><span>og:image is set</span></div>
+          <div class="pc-val"><span class="vi-pass">✓</span><span>twitter:card is set</span></div>
+        </div>
+      </div>
+
+      <div class="preview-card side">
+        <div class="pc-header"><span class="pc-dot"></span> OG Preview</div>
+        <div class="pc-img img-green"></div>
+        <div class="pc-body">
+          <div class="pc-title">How We Scaled to 1M Users</div>
+          <div class="pc-url">blog.acme.com › engineering</div>
+        </div>
+        <div class="pc-section">
+          <div class="pc-tabs">
+            <div class="pc-tab active">Facebook</div>
+            <div class="pc-tab">Twitter / X</div>
+            <div class="pc-tab">LinkedIn</div>
+          </div>
+          <div style="padding:6px 10px; background:#fff;">
+            <div class="sp-fb-img img-green"></div>
+            <div class="sp-fb-body">
+              <div class="sp-fb-site">blog.acme.com</div>
+              <div class="sp-fb-title">How We Scaled to 1M Users</div>
+              <div class="sp-fb-desc">Infrastructure decisions and caching strategies.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Features ─────────────────────────────────────── -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-label">Features</div>
+      <h2 class="section-title">Everything you need to<br><span>ship with confidence</span></h2>
+      <p class="section-sub">No more guessing how your links will look. OG Link Preview gives you instant, accurate previews without leaving the page.</p>
+
+      <div class="features-grid">
+
+        <div class="feature-card">
+          <div class="feature-icon">✓</div>
+          <h3>Instant Validation</h3>
+          <p>Catch missing or misconfigured Open Graph tags before publishing. Get a clear pass/warn/error score with actionable messages for every issue found.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <h3>Full Tag Inspector</h3>
+          <p>Browse every <code style="color:var(--orange);font-size:13px;">og:</code> and <code style="color:#1d9bf0;font-size:13px;">twitter:</code> tag on the current page in a clean, tabbed view. Missing fields are clearly flagged so nothing slips through.</p>
+        </div>
+
+        <div class="feature-card wide">
+          <div>
+            <div class="feature-icon">👁</div>
+            <h3>Realistic Social Previews</h3>
+            <p>See native-accurate mockups of how your link will render across every major platform. No need to post a test link — preview it locally before you ship.</p>
+            <div class="platforms">
+              <div class="platform-pill"><span class="platform-pill-dot"></span>Facebook</div>
+              <div class="platform-pill"><span class="platform-pill-dot"></span>Twitter / X</div>
+              <div class="platform-pill"><span class="platform-pill-dot"></span>LinkedIn</div>
+              <div class="platform-pill"><span class="platform-pill-dot"></span>Slack</div>
+            </div>
+          </div>
+          <div class="social-mockup">
+            <div class="sm-row">
+              <span class="sm-platform">Facebook</span>
+              <div class="sm-bar"><div class="sm-bar-fill" style="width:95%"></div></div>
+              <span class="sm-check">✓</span>
+            </div>
+            <div class="sm-row">
+              <span class="sm-platform">Twitter / X</span>
+              <div class="sm-bar"><div class="sm-bar-fill" style="width:88%"></div></div>
+              <span class="sm-check">✓</span>
+            </div>
+            <div class="sm-row">
+              <span class="sm-platform">LinkedIn</span>
+              <div class="sm-bar"><div class="sm-bar-fill" style="width:92%"></div></div>
+              <span class="sm-check">✓</span>
+            </div>
+            <div class="sm-row">
+              <span class="sm-platform">Slack</span>
+              <div class="sm-bar"><div class="sm-bar-fill" style="width:80%"></div></div>
+              <span class="sm-check">✓</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🖥</div>
+          <h3>Works Everywhere</h3>
+          <p>Inspect OG tags on localhost, staging servers, and production sites alike. No URL restrictions — if Chrome can load it, OG Link Preview can inspect it.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Completely Private</h3>
+          <p>OG Link Preview reads only the current page's meta tags — nothing is collected, stored, or sent anywhere. Ever. Your browsing stays entirely on your device.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── How it works ──────────────────────────────────── -->
+  <section class="how" id="how">
+    <div class="container">
+      <div class="section-label">How it works</div>
+      <h2 class="section-title">Three steps, <span>zero friction</span></h2>
+      <p class="section-sub" style="margin-bottom: 48px;">No configuration. No accounts. Just install and click.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">01</div>
+          <h3>Install the extension</h3>
+          <p>Add OG Link Preview from the Chrome Web Store. It takes seconds and requires no sign-up or configuration.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">02</div>
+          <h3>Open any page</h3>
+          <p>Navigate to any webpage — your own site, a competitor's, a staging environment, or even localhost.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">03</div>
+          <h3>Click the icon</h3>
+          <p>Click the OG Link Preview icon in your toolbar. Instantly see all meta tags, validation results, and social previews.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA ───────────────────────────────────────────── -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-box">
+        <h2>Ready to stop <span>guessing</span>?</h2>
+        <p>Join developers and content creators who use OG Link Preview to ship better-looking links.</p>
+        <a href="https://chromewebstore.google.com" class="btn-primary" target="_blank">
+          Add to Chrome — it's free
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ────────────────────────────────────────── -->
+  <footer>
+    <a href="/" class="footer-logo">
+      <span class="footer-logo-dot"></span>
+      OG Link Preview
+    </a>
+    <div class="footer-links">
+      <a href="privacy.html" class="footer-link">Privacy Policy</a>
+      <a href="https://github.com" class="footer-link" target="_blank">GitHub</a>
+    </div>
+    <span class="footer-copy">© 2026 OG Link Preview</span>
+  </footer>
+
+</body>
+</html>

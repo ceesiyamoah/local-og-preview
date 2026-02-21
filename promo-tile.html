@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Promo Tile – 440×280</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 440px;
+      height: 280px;
+      overflow: hidden;
+      font-family: "Euclid Circular A", "Inter", -apple-system, sans-serif;
+    }
+
+    .tile {
+      width: 440px;
+      height: 280px;
+      background: #0f0c29;
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 60%, #1a0a00 100%);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 36px 40px;
+    }
+
+    /* Grid overlay */
+    .tile::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+    }
+
+    /* Glow */
+    .glow {
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,140,0,.18) 0%, transparent 70%);
+      right: -60px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    /* Mini popup mockup */
+    .mockup {
+      position: absolute;
+      right: 32px;
+      top: 50%;
+      transform: translateY(-50%) rotate(3deg);
+      width: 148px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 16px 48px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.1);
+      font-size: 6px;
+      color: #222;
+    }
+
+    .m-header {
+      background: #fff;
+      border-bottom: 1px solid #eee;
+      padding: 5px 7px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+      font-size: 6px;
+    }
+    .m-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #ff8c00;
+    }
+    .m-img {
+      width: 100%;
+      height: 44px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+    .m-body { padding: 5px 7px; background: #fff; }
+    .m-title { font-weight: 700; font-size: 6.5px; color: #111; margin-bottom: 2px; }
+    .m-desc { font-size: 5px; color: #666; line-height: 1.4; margin-bottom: 3px; }
+    .m-url { font-size: 4.5px; color: #aaa; }
+
+    .m-section { background: #fff; margin-top: 3px; }
+    .m-section-header {
+      padding: 4px 7px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .m-section-title { font-size: 4.5px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 0.3px; }
+    .m-badge { font-size: 4px; font-weight: 700; padding: 1px 4px; border-radius: 6px; background: #fff3e0; color: #e67700; }
+    .m-badge.pass { background: #e6f9e6; color: #1a7f1a; }
+
+    .m-val { padding: 3px 7px; display: flex; gap: 4px; align-items: flex-start; border-bottom: 1px solid #f5f5f5; font-size: 5px; }
+    .m-val:last-child { border-bottom: none; }
+    .m-vi { font-size: 5.5px; line-height: 1.3; }
+    .vi-pass { color: #1a7f1a; }
+    .vi-warn { color: #e67700; }
+
+    /* Text content */
+    .content { position: relative; z-index: 1; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,140,0,.15);
+      border: 1px solid rgba(255,140,0,.3);
+      color: #ff8c00;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+    }
+    .badge-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #ff8c00;
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      margin-bottom: 10px;
+      max-width: 210px;
+    }
+    h1 span { color: #ff8c00; }
+
+    p {
+      font-size: 11px;
+      color: rgba(255,255,255,.5);
+      line-height: 1.5;
+      max-width: 200px;
+    }
+  </style>
+</head>
+<body>
+  <div class="tile">
+    <div class="glow"></div>
+
+    <!-- Mini popup mockup -->
+    <div class="mockup">
+      <div class="m-header"><span class="m-dot"></span> OG Preview</div>
+      <div class="m-img"></div>
+      <div class="m-body">
+        <div class="m-title">Getting Started with React 18</div>
+        <div class="m-desc">Learn Concurrent Mode and the new useTransition hook.</div>
+        <div class="m-url">reactjs.org › blog › react-18</div>
+      </div>
+      <div class="m-section">
+        <div class="m-section-header">
+          <span class="m-section-title">Validation</span>
+          <span class="m-badge pass">All Good ✓</span>
+        </div>
+        <div class="m-val"><span class="m-vi vi-pass">✓</span><span>og:title is set</span></div>
+        <div class="m-val"><span class="m-vi vi-pass">✓</span><span>og:description is set</span></div>
+        <div class="m-val"><span class="m-vi vi-pass">✓</span><span>og:image is set</span></div>
+        <div class="m-val"><span class="m-vi vi-pass">✓</span><span>twitter:card is set</span></div>
+      </div>
+    </div>
+
+    <!-- Text -->
+    <div class="content">
+      <div class="badge"><span class="badge-dot"></span> Chrome Extension</div>
+      <h1>OG <span>Link</span> Preview</h1>
+      <p>Inspect Open Graph tags & preview social shares instantly.</p>
+    </div>
+  </div>
+</body>
+</html>

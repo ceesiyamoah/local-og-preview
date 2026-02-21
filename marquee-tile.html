@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Marquee Tile – 1400×560</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 1400px;
+      height: 560px;
+      overflow: hidden;
+      font-family: "Euclid Circular A", "Inter", -apple-system, sans-serif;
+    }
+
+    .tile {
+      width: 1400px;
+      height: 560px;
+      background: linear-gradient(135deg, #0a0718 0%, #1a0f3c 40%, #2a1200 100%);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      padding: 0 100px;
+      gap: 80px;
+    }
+
+    /* Grid */
+    .tile::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* Left glow */
+    .glow-left {
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,140,0,.13) 0%, transparent 65%);
+      left: -100px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    /* Right glow */
+    .glow-right {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(100,80,255,.1) 0%, transparent 65%);
+      right: -60px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    /* ── Left: copy ─────────────────────────────────────── */
+    .copy {
+      position: relative;
+      z-index: 1;
+      flex-shrink: 0;
+      max-width: 440px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(255,140,0,.12);
+      border: 1px solid rgba(255,140,0,.3);
+      color: #ff8c00;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 22px;
+    }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ff8c00;
+    }
+
+    h1 {
+      font-size: 58px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.08;
+      letter-spacing: -1.5px;
+      margin-bottom: 18px;
+    }
+    h1 span { color: #ff8c00; }
+
+    p {
+      font-size: 17px;
+      color: rgba(255,255,255,.5);
+      line-height: 1.6;
+      margin-bottom: 30px;
+      max-width: 380px;
+    }
+
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      color: rgba(255,255,255,.7);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 20px;
+    }
+    .pill-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #ff8c00;
+    }
+
+    /* ── Right: popup trio ──────────────────────────────── */
+    .popups {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+
+    .popup {
+      position: absolute;
+      width: 220px;
+      background: #f5f5f5;
+      border-radius: 10px;
+      overflow: hidden;
+      font-size: 7.5px;
+      color: #222;
+      box-shadow: 0 24px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.08);
+    }
+
+    /* Three popup positions */
+    .popup-center {
+      position: relative;
+      z-index: 3;
+      width: 240px;
+      transform: rotate(0deg);
+      box-shadow: 0 32px 80px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.12);
+    }
+    .popup-left {
+      left: -10px;
+      z-index: 2;
+      transform: rotate(-6deg) translateY(20px);
+      opacity: .85;
+    }
+    .popup-right {
+      right: 20px;
+      z-index: 2;
+      transform: rotate(6deg) translateY(20px);
+      opacity: .85;
+    }
+
+    /* Popup internals */
+    .p-header {
+      background: #fff;
+      border-bottom: 1px solid #eee;
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+      font-size: 7px;
+    }
+    .p-dot { width: 5px; height: 5px; border-radius: 50%; background: #ff8c00; }
+
+    .p-img {
+      width: 100%;
+      height: 60px;
+    }
+    .img-purple { background: linear-gradient(135deg, #667eea, #764ba2); }
+    .img-green  { background: linear-gradient(135deg, #11998e, #38ef7d); }
+    .img-orange { background: linear-gradient(135deg, #f7971e, #ffd200); }
+
+    .p-body { padding: 6px 8px; background: #fff; }
+    .p-title { font-weight: 700; font-size: 8px; color: #111; margin-bottom: 2px; }
+    .p-desc  { font-size: 6px; color: #666; line-height: 1.4; margin-bottom: 3px; }
+    .p-url   { font-size: 5.5px; color: #aaa; }
+
+    .p-section { background: #fff; margin-top: 3px; }
+    .p-section-hd {
+      padding: 4px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .p-section-title { font-size: 5px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 0.3px; }
+    .p-badge { font-size: 4.5px; font-weight: 700; padding: 1.5px 5px; border-radius: 6px; }
+    .badge-pass { background: #e6f9e6; color: #1a7f1a; }
+    .badge-warn { background: #fff3e0; color: #e67700; }
+    .badge-err  { background: #fde8e8; color: #c00; }
+
+    .p-val { padding: 3px 8px; display: flex; gap: 4px; align-items: flex-start; border-bottom: 1px solid #f5f5f5; font-size: 5.5px; }
+    .p-val:last-child { border-bottom: none; }
+    .vi-pass { color: #1a7f1a; }
+    .vi-warn { color: #e67700; }
+    .vi-err  { color: #c00; }
+
+    .p-tabs { display: flex; padding: 0 8px; background: #fff; border-bottom: 1px solid #eee; }
+    .p-tab { padding: 5px 8px; font-size: 6px; font-weight: 500; color: #bbb; border-bottom: 2px solid transparent; }
+    .p-tab.active { color: #ff8c00; border-bottom-color: #ff8c00; }
+
+    .p-tag-row { display: flex; padding: 3px 0; border-bottom: 1px solid #f5f5f5; gap: 5px; }
+    .p-tag-row:last-child { border-bottom: none; }
+    .p-tag-name { font-size: 5.5px; font-family: monospace; min-width: 60px; flex-shrink: 0; color: #ff8c00; font-weight: 600; }
+    .p-tag-val  { font-size: 5.5px; color: #333; }
+    .p-tag-panel { padding: 5px 8px; background: #fff; }
+
+    /* Social preview in right popup */
+    .sp-fb-img { width: 100%; height: 40px; }
+    .sp-fb-body { padding: 5px 7px; background: #f0f2f5; border: 1px solid #ddd; border-top: 0; }
+    .sp-fb-site { font-size: 4.5px; color: #65676b; text-transform: uppercase; }
+    .sp-fb-title { font-size: 6px; font-weight: 600; color: #1c1e21; margin: 1px 0; }
+    .sp-fb-desc { font-size: 5px; color: #65676b; }
+  </style>
+</head>
+<body>
+  <div class="tile">
+    <div class="glow-left"></div>
+    <div class="glow-right"></div>
+
+    <!-- ── Copy ───────────────────────────────────────────── -->
+    <div class="copy">
+      <div class="badge"><span class="badge-dot"></span> Chrome Extension</div>
+      <h1>OG <span>Link</span><br>Preview</h1>
+      <p>Inspect Open Graph & Twitter Card tags instantly. See exactly how your links look on every platform.</p>
+      <div class="pill-list">
+        <div class="pill"><span class="pill-dot"></span> Facebook</div>
+        <div class="pill"><span class="pill-dot"></span> Twitter / X</div>
+        <div class="pill"><span class="pill-dot"></span> LinkedIn</div>
+        <div class="pill"><span class="pill-dot"></span> Slack</div>
+        <div class="pill"><span class="pill-dot"></span> Works on localhost</div>
+      </div>
+    </div>
+
+    <!-- ── Popup trio ─────────────────────────────────────── -->
+    <div class="popups">
+
+      <!-- Left popup: Tag inspector -->
+      <div class="popup popup-left">
+        <div class="p-header"><span class="p-dot"></span> OG Preview</div>
+        <div class="p-body" style="background:#fff; border-bottom:1px solid #eee;">
+          <div class="p-title">The Complete Guide to CSS Grid</div>
+          <div class="p-url">css-tricks.com › complete-guide-grid</div>
+        </div>
+        <div class="p-section">
+          <div class="p-tabs">
+            <div class="p-tab active">OG Tags</div>
+            <div class="p-tab">Twitter / X</div>
+          </div>
+          <div class="p-tag-panel">
+            <div class="p-tag-row"><span class="p-tag-name">og:title</span><span class="p-tag-val">The Complete Guide to CSS Grid</span></div>
+            <div class="p-tag-row"><span class="p-tag-name">og:description</span><span class="p-tag-val">A comprehensive guide with examples.</span></div>
+            <div class="p-tag-row"><span class="p-tag-name">og:image</span><span class="p-tag-val">css-tricks.com/wp-content/og.png</span></div>
+            <div class="p-tag-row"><span class="p-tag-name">og:url</span><span class="p-tag-val">https://css-tricks.com/...</span></div>
+            <div class="p-tag-row"><span class="p-tag-name">og:type</span><span class="p-tag-val">article</span></div>
+            <div class="p-tag-row"><span class="p-tag-name">og:site_name</span><span class="p-tag-val">CSS-Tricks</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center popup: Validation all good -->
+      <div class="popup popup-center">
+        <div class="p-header"><span class="p-dot"></span> OG Preview</div>
+        <div class="p-img img-orange"></div>
+        <div class="p-body">
+          <div class="p-title">Introducing Our New Design System</div>
+          <div class="p-desc">Meet Horizon — a flexible, accessible component library built for scale.</div>
+          <div class="p-url">design.acme.com › blog › horizon</div>
+        </div>
+        <div class="p-section">
+          <div class="p-section-hd">
+            <span class="p-section-title">Validation</span>
+            <span class="p-badge badge-pass">All Good ✓</span>
+          </div>
+          <div class="p-val"><span class="vi-pass">✓</span><span>og:title is set</span></div>
+          <div class="p-val"><span class="vi-pass">✓</span><span>og:description is set</span></div>
+          <div class="p-val"><span class="vi-pass">✓</span><span>og:image is set</span></div>
+          <div class="p-val"><span class="vi-pass">✓</span><span>twitter:card is set</span></div>
+          <div class="p-val"><span class="vi-pass">✓</span><span>og:url is set</span></div>
+        </div>
+      </div>
+
+      <!-- Right popup: Social preview -->
+      <div class="popup popup-right">
+        <div class="p-header"><span class="p-dot"></span> OG Preview</div>
+        <div class="p-body" style="border-bottom:1px solid #eee;">
+          <div class="p-title">How We Scaled to 1M Users</div>
+          <div class="p-url">blog.acme.com › engineering › scaling</div>
+        </div>
+        <div class="p-section">
+          <div class="p-tabs">
+            <div class="p-tab active">Facebook</div>
+            <div class="p-tab">Twitter / X</div>
+            <div class="p-tab">LinkedIn</div>
+          </div>
+          <div style="padding: 6px 8px;">
+            <div class="sp-fb-img img-green"></div>
+            <div class="sp-fb-body">
+              <div class="sp-fb-site">blog.acme.com</div>
+              <div class="sp-fb-title">How We Scaled to 1M Users</div>
+              <div class="sp-fb-desc">Infrastructure decisions and caching strategies.</div>
+            </div>
+          </div>
+        </div>
+        <div class="p-section">
+          <div class="p-section-hd">
+            <span class="p-section-title">Validation</span>
+            <span class="p-badge badge-warn">2 Warnings</span>
+          </div>
+          <div class="p-val"><span class="vi-pass">✓</span><span>og:title is set</span></div>
+          <div class="p-val"><span class="vi-warn">⚠</span><span>twitter:card is not set</span></div>
+          <div class="p-val"><span class="vi-warn">⚠</span><span>og:description too long</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
