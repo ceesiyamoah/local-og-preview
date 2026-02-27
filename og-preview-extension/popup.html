@@ -185,6 +185,12 @@
     .sp-wa-domain { font-size: 11px; color: #667781; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
     .sp-wa-domain-icon { width: 14px; height: 14px; border-radius: 50%; background: #b3b3b3; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; color: #fff; }
     .sp-wa-url { color: #027eb5; font-size: 12px; padding: 4px 10px 8px; word-break: break-all; }
+
+    /* SSR Warning */
+    .ssr-warning { display: flex; gap: 8px; padding: 10px 14px; background: #fff8e1; border-left: 4px solid #f59e0b; margin: 0; }
+    .ssr-icon { font-size: 18px; flex-shrink: 0; line-height: 1.2; }
+    .ssr-text { font-size: 11px; color: #92400e; line-height: 1.5; }
+    .ssr-text strong { color: #78350f; }
   </style>
 </head>
 <body>
@@ -197,6 +203,9 @@
   <div id="error"></div>
 
   <div id="preview-card">
+    <!-- SSR Warning -->
+    <div id="ssr-warning" class="ssr-warning" style="display:none"></div>
+
     <!-- Preview Card -->
     <img id="og-image" class="og-image" />
     <div class="og-content">

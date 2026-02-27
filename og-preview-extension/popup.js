@@ -46,7 +46,17 @@ async function extractRawMetaTags() {
       if (name && content) twitterTags[name] = content;
     });
 
-    return { ogTags, twitterTags };
+    // Fallbacks that crawlers use when OG tags are missing
+    const titleEl = doc.querySelector('title');
+    const title = titleEl ? titleEl.textContent : '';
+
+    const descMeta = doc.querySelector('meta[name="description"]');
+    const description = descMeta ? descMeta.getAttribute('content') : '';
+
+    const faviconEl = doc.querySelector('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]');
+    const favicon = faviconEl ? faviconEl.getAttribute('href') : '';
+
+    return { ogTags, twitterTags, title, description, favicon };
   } catch {
     return null;
   }
@@ -90,6 +100,42 @@ function validate(data) {
   }
 
   return { errors, warnings, passes };
+}
+
+// --- SSR Check ---
+
+function checkSSR(domData, rawData) {
+  const issues = [];
+  if (!rawData) return issues;
+
+  const criticalTags = ['og:title', 'og:description', 'og:image', 'og:url'];
+  const criticalTwitter = ['twitter:card', 'twitter:title', 'twitter:image'];
+
+  for (const tag of criticalTags) {
+    if (domData.ogTags[tag] && !rawData.ogTags[tag]) {
+      issues.push(tag);
+    }
+  }
+
+  for (const tag of criticalTwitter) {
+    if (domData.twitterTags[tag] && !rawData.twitterTags[tag]) {
+      issues.push(tag);
+    }
+  }
+
+  return issues;
+}
+
+function renderSSRWarning(container, issues) {
+  container.style.display = 'block';
+  const tagList = issues.map((t) => `<strong>${escapeHtml(t)}</strong>`).join(', ');
+  container.innerHTML = `
+    <div class="ssr-icon">&#x26A0;</div>
+    <div class="ssr-text">
+      <strong>Client-side only tags detected</strong><br/>
+      ${tagList} ${issues.length === 1 ? 'is' : 'are'} injected by JavaScript and <em>won't be visible</em> to social media crawlers (Facebook, Twitter, WhatsApp, etc.). Use server-side rendering to ensure previews work.
+    </div>
+  `;
 }
 
 // --- Rendering ---
@@ -161,7 +207,9 @@ function escapeHtml(str) {
 }
 
 function renderSocialPreviews(data) {
-  const image = resolveImage(data.ogTags['og:image'] || data.twitterTags['twitter:image'], data.url);
+  const ogImage = resolveImage(data.ogTags['og:image'] || data.twitterTags['twitter:image'], data.url);
+  const favicon = data.favicon || '';
+  const image = ogImage || favicon;
   const title = data.ogTags['og:title'] || data.twitterTags['twitter:title'] || data.title;
   const desc = data.ogTags['og:description'] || data.twitterTags['twitter:description'] || data.description;
   const siteName = data.siteName;
@@ -290,9 +338,31 @@ async function init() {
     const data = result.result;
     const rawData = rawResult.result;
 
-    const image = resolveImage(data.ogTags['og:image'], data.url);
+    // SSR check — compare raw HTML tags vs live DOM tags
+    const ssrIssues = checkSSR(data, rawData);
+    const hasSSRIssues = ssrIssues.length > 0;
+    if (hasSSRIssues) {
+      renderSSRWarning(document.getElementById('ssr-warning'), ssrIssues);
+    }
 
-    // Render preview card
+    // Use raw server data for validation and previews when CSR-only tags detected
+    // This shows what crawlers will actually see — with crawler-like fallbacks
+    let effectiveData = data;
+    if (hasSSRIssues && rawData) {
+      const faviconUrl = rawData.favicon ? resolveImage(rawData.favicon, data.url) : '';
+      effectiveData = {
+        ogTags: rawData.ogTags,
+        twitterTags: rawData.twitterTags,
+        title: rawData.ogTags['og:title'] || rawData.title || '',
+        description: rawData.ogTags['og:description'] || rawData.description || '',
+        siteName: rawData.ogTags['og:site_name'] || '',
+        favicon: faviconUrl,
+        url: data.url,
+      };
+    }
+
+    // Render preview card using effective data
+    const image = resolveImage(effectiveData.ogTags['og:image'], data.url) || effectiveData.favicon || '';
     const imgEl = document.getElementById('og-image');
     if (image) {
       imgEl.src = image;
@@ -301,14 +371,14 @@ async function init() {
       imgEl.style.display = 'none';
     }
 
-    document.getElementById('og-title').textContent = data.title;
-    document.getElementById('og-description').textContent = data.description;
+    document.getElementById('og-title').textContent = effectiveData.title;
+    document.getElementById('og-description').textContent = effectiveData.description;
     document.getElementById('og-url').textContent = data.url;
 
-    // OG tag list
+    // OG tag list — show what crawlers will actually see
     renderTagList(
       document.getElementById('og-tags-list'),
-      data.ogTags,
+      effectiveData.ogTags,
       ['og:title', 'og:description', 'og:image', 'og:url', 'og:type', 'og:site_name', 'og:locale'],
       'tag-og'
     );
@@ -316,23 +386,16 @@ async function init() {
     // Twitter tag list
     renderTagList(
       document.getElementById('twitter-tags-list'),
-      data.twitterTags,
+      effectiveData.twitterTags,
       ['twitter:card', 'twitter:title', 'twitter:description', 'twitter:image', 'twitter:site', 'twitter:creator'],
       'tag-twitter'
     );
 
-    // SSR check — compare raw HTML tags vs live DOM tags
-    const ssrIssues = checkSSR(data, rawData);
-    if (ssrIssues.length > 0) {
-      renderSSRWarning(document.getElementById('ssr-warning'), ssrIssues);
-    }
-
-    // Validation
-    const validationResults = validate(data);
+    // Validation — validate what crawlers will actually see
+    const validationResults = validate(effectiveData);
     renderValidation(document.getElementById('validation-list'), validationResults);
 
     // Score badge
-    const total = validationResults.errors.length + validationResults.warnings.length + validationResults.passes.length;
     const scoreEl = document.getElementById('validation-score');
     if (validationResults.errors.length > 0) {
       scoreEl.textContent = `${validationResults.errors.length} error${validationResults.errors.length > 1 ? 's' : ''}`;
@@ -345,8 +408,8 @@ async function init() {
       scoreEl.className = 'score-badge score-pass';
     }
 
-    // Social previews
-    renderSocialPreviews(data);
+    // Social previews — show what crawlers will actually see
+    renderSocialPreviews(effectiveData);
 
     // Init tabs
     initTabs();
