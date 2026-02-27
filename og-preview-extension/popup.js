@@ -22,6 +22,36 @@ function extractMetaTags() {
   return { ogTags, twitterTags, title, description, siteName, url: location.href };
 }
 
+// Fetches the raw HTML and extracts OG/Twitter tags without JS execution
+// This simulates what social media crawlers actually see
+async function extractRawMetaTags() {
+  try {
+    const res = await fetch(location.href, { credentials: 'omit' });
+    const html = await res.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    const ogTags = {};
+    const twitterTags = {};
+
+    doc.querySelectorAll('meta[property^="og:"]').forEach((el) => {
+      const property = el.getAttribute('property');
+      const content = el.getAttribute('content');
+      if (property && content) ogTags[property] = content;
+    });
+
+    doc.querySelectorAll('meta[name^="twitter:"], meta[property^="twitter:"]').forEach((el) => {
+      const name = el.getAttribute('name') || el.getAttribute('property');
+      const content = el.getAttribute('content');
+      if (name && content) twitterTags[name] = content;
+    });
+
+    return { ogTags, twitterTags };
+  } catch {
+    return null;
+  }
+}
+
 // --- Validation ---
 
 function validate(data) {
@@ -197,6 +227,25 @@ function renderSocialPreviews(data) {
       ${image ? `<div class="sp-sl-image"><img src="${escapeHtml(image)}" /></div>` : ''}
     </div>
   `;
+
+  // WhatsApp
+  const wa = document.getElementById('panel-whatsapp');
+  wa.innerHTML = `
+    <div class="sp-wa-bubble">
+      <div class="sp-wa-link-card">
+        ${image ? `<div class="sp-wa-image"><img src="${escapeHtml(image)}" /></div>` : ''}
+        <div class="sp-wa-body">
+          <div class="sp-wa-title">${escapeHtml(title)}</div>
+          <div class="sp-wa-desc">${escapeHtml(desc)}</div>
+          <div class="sp-wa-domain">
+            <span class="sp-wa-domain-icon">&#x1F310;</span>
+            ${escapeHtml(hostname)}
+          </div>
+        </div>
+      </div>
+      <div class="sp-wa-url">${escapeHtml(data.url)}</div>
+    </div>
+  `;
 }
 
 // --- Tabs ---
@@ -225,13 +274,21 @@ async function init() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
+    // Extract tags from the live DOM (post-JS)
     const [result] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: extractMetaTags,
     });
 
+    // Extract tags from the raw HTML (pre-JS) — what crawlers see
+    const [rawResult] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: extractRawMetaTags,
+    });
+
     loadingEl.style.display = 'none';
     const data = result.result;
+    const rawData = rawResult.result;
 
     const image = resolveImage(data.ogTags['og:image'], data.url);
 
@@ -263,6 +320,12 @@ async function init() {
       ['twitter:card', 'twitter:title', 'twitter:description', 'twitter:image', 'twitter:site', 'twitter:creator'],
       'tag-twitter'
     );
+
+    // SSR check — compare raw HTML tags vs live DOM tags
+    const ssrIssues = checkSSR(data, rawData);
+    if (ssrIssues.length > 0) {
+      renderSSRWarning(document.getElementById('ssr-warning'), ssrIssues);
+    }
 
     // Validation
     const validationResults = validate(data);
