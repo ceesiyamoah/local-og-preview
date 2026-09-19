@@ -84,6 +84,42 @@ async function extractRawMetaTags() {
   }
 }
 
+// Fetches the origin-level files that AI crawlers consult: robots.txt (which
+// they honour today) plus the llms.txt convention. Runs in the page context, so
+// these are same-origin requests and need no host permissions.
+async function extractAIFiles() {
+  const get = async (path) => {
+    let res;
+    try {
+      res = await fetch(new URL(path, location.origin).href, { credentials: 'omit' });
+    } catch {
+      return { state: 'error' };
+    }
+    if (!res.ok) return { state: 'missing', status: res.status };
+
+    const text = await res.text();
+    // SPA catch-all routes answer 200 with the app shell for any path, so a
+    // body that parses as HTML means the file isn't really there.
+    const type = (res.headers.get('content-type') || '').toLowerCase();
+    if (type.includes('text/html') || /^\s*(<!doctype\s+html|<html[\s>])/i.test(text)) {
+      return { state: 'missing', status: res.status, html: true };
+    }
+
+    return {
+      state: 'found',
+      url: res.url,
+      bytes: new Blob([text]).size,
+      lines: text.split(/\r?\n/).filter((l) => l.trim()).length,
+      text: text.slice(0, 200000),
+    };
+  };
+
+  const [robots, llms, llmsFull] = await Promise.all([
+    get('/robots.txt'), get('/llms.txt'), get('/llms-full.txt'),
+  ]);
+  return { origin: location.origin, path: location.pathname + location.search, robots, llms, llmsFull };
+}
+
 // --- Validation ---
 
 function validate(data) {
@@ -525,6 +561,234 @@ function renderJsonLd(blocks) {
   }));
 }
 
+// --- AI crawlers ---
+
+// AI agents that are dispatched today and honour robots.txt, as the tokens
+// appear in a User-agent line.
+const AI_BOTS = [
+  { ua: 'GPTBot', who: 'OpenAI — training' },
+  { ua: 'OAI-SearchBot', who: 'OpenAI — ChatGPT search' },
+  { ua: 'ChatGPT-User', who: 'OpenAI — user-triggered fetch' },
+  { ua: 'ClaudeBot', who: 'Anthropic — training' },
+  { ua: 'Claude-User', who: 'Anthropic — user-triggered fetch' },
+  { ua: 'Claude-SearchBot', who: 'Anthropic — search index' },
+  { ua: 'PerplexityBot', who: 'Perplexity — search index' },
+  { ua: 'Perplexity-User', who: 'Perplexity — user-triggered fetch' },
+  { ua: 'Google-Extended', who: 'Google — Gemini training' },
+  { ua: 'Applebot-Extended', who: 'Apple — Apple Intelligence training' },
+  { ua: 'Meta-ExternalAgent', who: 'Meta — AI training' },
+  { ua: 'Amazonbot', who: 'Amazon — assistant and AI' },
+  { ua: 'Bytespider', who: 'ByteDance — training' },
+  { ua: 'CCBot', who: 'Common Crawl — feeds many datasets' },
+  { ua: 'cohere-ai', who: 'Cohere — training' },
+  { ua: 'DuckAssistBot', who: 'DuckDuckGo — AI answers' },
+  { ua: 'YouBot', who: 'You.com — search index' },
+  { ua: 'Diffbot', who: 'Diffbot — structured web data' },
+];
+
+// Splits robots.txt into groups. Consecutive User-agent lines share one group;
+// any other field ends the agent run, so a later User-agent starts a new group.
+function parseRobots(text) {
+  const groups = [];
+  let group = null;
+  let inAgentRun = false;
+
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/#.*$/, '').trim();
+    const sep = line.indexOf(':');
+    if (sep === -1) continue;
+
+    const field = line.slice(0, sep).trim().toLowerCase();
+    const value = line.slice(sep + 1).trim();
+
+    if (field === 'user-agent') {
+      if (!inAgentRun) { group = { agents: [], rules: [] }; groups.push(group); }
+      group.agents.push(value.toLowerCase());
+      inAgentRun = true;
+    } else {
+      inAgentRun = false;
+      if (group && (field === 'allow' || field === 'disallow')) {
+        group.rules.push({ allow: field === 'allow', path: value });
+      }
+    }
+  }
+  return groups;
+}
+
+// robots.txt paths are prefixes with two wildcards: * matches any run of
+// characters, $ anchors the end of the URL.
+function pathMatches(pattern, path) {
+  if (!pattern) return false;
+  let re = '';
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i];
+    if (ch === '*') re += '.*';
+    else if (ch === '$' && i === pattern.length - 1) re += '$';
+    else re += ch.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+  }
+  try { return new RegExp('^' + re).test(path); } catch { return false; }
+}
+
+// Longest matching rule wins; Allow wins a tie. This is the rule Google,
+// OpenAI and Anthropic all follow, and it is why "Allow: /" does not rescue
+// a page that a more specific Disallow already covers.
+function pathAllowed(rules, path) {
+  let best = null;
+  for (const r of rules) {
+    if (!r.path || !pathMatches(r.path, path)) continue;
+    if (!best || r.path.length > best.length || (r.path.length === best.length && r.allow)) {
+      best = { allow: r.allow, length: r.path.length };
+    }
+  }
+  return best ? best.allow : true;
+}
+
+// Resolves one bot against the parsed groups, for the page currently open. The
+// verdict that matters is whether THIS page is crawlable; the site-wide shape
+// is reported alongside it as context, not as a warning in its own right.
+function botStatus(groups, ua, path) {
+  const name = ua.toLowerCase();
+  let group = groups.find((g) => g.agents.includes(name));
+  let via = 'own rule';
+
+  if (!group) {
+    group = groups.find((g) => g.agents.includes('*'));
+    via = 'via *';
+  }
+  if (!group) return { pageAllowed: true, scope: 'no rules', via: 'no rule' };
+
+  // "Disallow:" with an empty value is an explicit allow-all.
+  const blocks = group.rules.filter((r) => !r.allow && r.path !== '');
+  const blocksRoot = blocks.some((r) => r.path === '/');
+  const hasAllow = group.rules.some((r) => r.allow);
+
+  let scope;
+  if (blocksRoot && !hasAllow) scope = 'whole site blocked';
+  else if (blocksRoot) scope = `site-wide block · ${group.rules.filter((r) => r.allow).length} exception(s)`;
+  else if (blocks.length) scope = `${blocks.length} path${blocks.length > 1 ? 's' : ''} excluded`;
+  else scope = 'no restrictions';
+
+  return { pageAllowed: pathAllowed(group.rules, path), scope, via };
+}
+
+function formatBytes(n) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function aiRow(name, who, stateText, stateClass, url) {
+  const row = el('div', 'ai-row');
+  const label = el('div', 'ai-label');
+  label.append(el('div', 'ai-name', name));
+  if (who) label.append(el('div', 'ai-who', who));
+
+  const right = el('div', 'ai-right');
+  right.append(el('span', `ai-state ${stateClass}`, stateText));
+  if (url) {
+    const link = el('button', 'ai-link', 'view');
+    link.type = 'button';
+    link.addEventListener('click', () => chrome.tabs.create({ url }));
+    right.append(link);
+  }
+
+  row.append(label, right);
+  return row;
+}
+
+function renderAISection(ai) {
+  const section = document.getElementById('ai-section');
+  const body = document.getElementById('ai-body');
+  const badge = document.getElementById('ai-badge');
+  const toggle = document.getElementById('ai-toggle');
+
+  // The section always appears once the popup can read the page. Hiding it on
+  // failure made a broken check indistinguishable from a missing feature.
+  section.style.display = 'block';
+  toggle.onclick = () => {
+    const open = body.style.display === 'none';
+    body.style.display = open ? 'block' : 'none';
+    toggle.querySelector('.ai-caret').textContent = open ? '▾' : '▸';
+  };
+
+  if (!ai || ai.error) {
+    badge.textContent = 'unavailable';
+    badge.className = 'score-badge score-warn';
+    body.replaceChildren(el('div', 'ai-empty',
+      ai && ai.error
+        ? `Couldn't check this site: ${ai.error}`
+        : "Couldn't read this site's robots.txt or llms.txt."));
+    body.style.display = 'block';
+    toggle.querySelector('.ai-caret').textContent = '▾';
+    return;
+  }
+
+  const rows = [];
+
+  // robots.txt is site-wide, but the verdict people want is about the page in
+  // front of them, so every row is judged against this path.
+  let host;
+  try { host = new URL(ai.origin).hostname; } catch { host = ai.origin; }
+  const path = ai.path || '/';
+  rows.push(el('div', 'ai-note', `Verdicts are for ${path} on ${host}. robots.txt itself is site-wide.`));
+
+  let blockedHere = 0;
+  if (ai.robots.state === 'found') {
+    const groups = parseRobots(ai.robots.text);
+
+    AI_BOTS.forEach((bot) => {
+      const st = botStatus(groups, bot.ua, path);
+      if (!st.pageAllowed) blockedHere++;
+      rows.push(aiRow(
+        bot.ua,
+        `${bot.who} · ${st.via} · ${st.scope}`,
+        st.pageAllowed ? 'Allowed' : 'Blocked',
+        st.pageAllowed ? 'ok' : 'bad',
+      ));
+    });
+
+    // Agents the site configures that this list doesn't cover — reported so a
+    // deliberately thorough robots.txt doesn't look thinner than it is.
+    const known = new Set(AI_BOTS.map((b) => b.ua.toLowerCase()));
+    const others = [...new Set(groups.flatMap((g) => g.agents))]
+      .filter((a) => a !== '*' && !known.has(a));
+    if (others.length) {
+      const sample = others.slice(0, 3).join(', ');
+      rows.push(el('div', 'ai-note',
+        `This site also sets rules for ${others.length} other agent${others.length > 1 ? 's' : ''} not listed above (${sample}${others.length > 3 ? ', …' : ''}).`));
+    }
+  } else {
+    rows.push(el('div', 'ai-empty', ai.robots.state === 'error'
+      ? "robots.txt couldn't be fetched, so crawler access is unknown."
+      : 'No robots.txt — every AI crawler is allowed by default.'));
+  }
+
+  badge.textContent = ai.robots.state !== 'found' ? 'no robots.txt'
+    : blockedHere ? `${blockedHere} blocked here`
+    : 'page open';
+  badge.className = `score-badge ${blockedHere ? 'score-error' : 'score-pass'}`;
+
+  // llms.txt convention — reported, never scored. No major crawler is known to
+  // consume it, so a missing file is information rather than a failure.
+  rows.push(el('div', 'ai-group', 'Files'));
+  [['llms.txt', ai.llms], ['llms-full.txt', ai.llmsFull], ['robots.txt', ai.robots]]
+    .forEach(([name, file]) => {
+      const found = file.state === 'found';
+      rows.push(aiRow(
+        name,
+        found ? `${formatBytes(file.bytes)} · ${file.lines} lines` : '',
+        found ? 'Found' : file.state === 'error' ? 'Unreachable' : 'Not found',
+        found ? 'ok' : 'muted',
+        found ? file.url : null,
+      ));
+    });
+
+  rows.push(el('div', 'ai-note', 'llms.txt is an emerging convention — no major AI crawler is known to consume it yet, so absence is not a defect.'));
+
+  body.replaceChildren(...rows);
+  body.style.display = 'none';
+}
+
 // --- Image health ---
 
 // Loads the og:image to report its real pixel size and catch broken URLs.
@@ -742,6 +1006,12 @@ async function init() {
 
     // Structured data — from the live DOM (Googlebot renders JS)
     renderJsonLd(data.jsonLd);
+
+    // AI crawler access — three origin-level fetches, so let it fill in after
+    // the card renders rather than holding the popup open on the network.
+    chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extractAIFiles })
+      .then(([r]) => renderAISection(r && r.result ? r.result : { error: 'the page returned no result' }))
+      .catch((e) => renderAISection({ error: (e && e.message) || String(e) }));
 
     // Official re-scrape / validation tools for this URL
     renderDebuggers(data.url);
